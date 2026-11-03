@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   whitespace:
-    runs-on: windows-latest
+    runs-on: [ubuntu-latest, upstairspc-linux]
     defaults:
       run:
-        shell: pwsh
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -24,10 +24,10 @@ jobs:
       - run: dotnet format whitespace . --folder --verify-no-changes --verbosity diagnostic
 
   pytest:
-    runs-on: windows-latest
+    runs-on: [ubuntu-latest, upstairspc-linux]
     defaults:
       run:
-        shell: pwsh
+        shell: bash
         working-directory: mcp
     steps:
       - uses: actions/checkout@v4
