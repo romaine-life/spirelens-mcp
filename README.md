@@ -1,5 +1,10 @@
 # SpireLens MCP
 
+Source, pull requests, CI, and releases live on
+[Forgejo](https://forgejo.romaine.life/romaine-life/spire-lens-mcp).
+GitHub is a push mirror. Releases contain source archives; compiling the mod
+still requires a local copy of the game as described below.
+
 HTTP bridge mod for [**Slay the Spire 2**](https://store.steampowered.com/app/2868840/Slay_the_Spire_2/) used by [SpireLens](https://github.com/romaine-life/spirelens) for live-game agentic validation. Exposes game state and actions on `localhost:15526` for the bundled Python MCP server, which Claude Code and other MCP clients can use to drive runs.
 
 Vendored from [`Gennadiyev/STS2MCP`](https://github.com/Gennadiyev/STS2MCP) v0.3.4 under MIT — see [`AUTHORS.md`](AUTHORS.md) for attribution and the rationale for forking.

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  whitespace:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      # The game assemblies are proprietary; folder mode checks the C# syntax
+      # without loading the game-dependent project.
+      - run: dotnet format whitespace . --folder --verify-no-changes --verbosity diagnostic
+
+  pytest:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "mcp/uv.lock"
+      - run: uv run --frozen --group dev pytest -q
