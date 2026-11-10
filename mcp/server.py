@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("spire-lens-mcp")
+mcp = FastMCP("spirelens-mcp")
 
 _base_url: str = "http://localhost:15526"
 _trust_env: bool = True
@@ -438,7 +438,7 @@ def _classify_host_status(bridge: dict) -> dict:
         "diagnosis": diagnosis,
         "mcp_server": {
             "status": "ok",
-            "note": "This response came from the host-side spire-lens-mcp server.",
+            "note": "This response came from the host-side spirelens-mcp server.",
         },
         "game": {
             "running": game_running,
@@ -549,7 +549,7 @@ def _base_save_dir() -> Path:
 
 
 def _bundled_base_save_dir() -> Path:
-    """Base saves committed alongside the spire-lens-mcp package itself.
+    """Base saves committed alongside the spirelens-mcp package itself.
 
     Used as a last-resort fallback so a fresh runner that's never had
     SpireLensMcp populate its AppData base_saves can still materialize
@@ -3130,7 +3130,7 @@ def _run_http(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="spire-lens-mcp server")
+    parser = argparse.ArgumentParser(description="spirelens-mcp server")
     parser.add_argument("--port", type=int, default=15526, help="Game HTTP bridge port (the in-game listener)")
     parser.add_argument("--host", type=str, default="localhost", help="Game HTTP bridge host (the in-game listener)")
     parser.add_argument("--no-trust-env", action="store_true", help="Ignore HTTP_PROXY/HTTPS_PROXY environment variables")

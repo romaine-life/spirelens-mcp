@@ -1,7 +1,7 @@
 # SpireLens MCP
 
 Source, pull requests, CI, and releases live on
-[Forgejo](https://forgejo.romaine.life/romaine-life/spire-lens-mcp).
+[Forgejo](https://forgejo.romaine.life/romaine-life/spirelens-mcp).
 GitHub is a push mirror. Releases contain source archives; compiling the mod
 still requires a local copy of the game as described below.
 
@@ -81,7 +81,7 @@ Nothing in the bridge or the MCP server waits by polling:
 Requires [Python 3.11+](https://www.python.org/) and [uv](https://docs.astral.sh/uv/). First run installs the locked dependencies from `mcp/uv.lock`:
 
 ```bash
-uv run --directory /path/to/spire-lens-mcp/mcp python server.py --help
+uv run --directory /path/to/spirelens-mcp/mcp python server.py --help
 ```
 
 Add to a consumer's `.mcp.json` (e.g. SpireLens's) — pointing at the local checkout:
@@ -92,7 +92,7 @@ Add to a consumer's `.mcp.json` (e.g. SpireLens's) — pointing at the local che
     "sts2-modding": {
       "type": "stdio",
       "command": "uv",
-      "args": ["run", "--directory", "D:\\repos\\spire-lens-mcp\\mcp", "python", "server.py"],
+      "args": ["run", "--directory", "D:\\repos\\spirelens-mcp\\mcp", "python", "server.py"],
       "env": {
         "STS2_GAME_DIR": "D:\\SteamLibrary\\steamapps\\common\\Slay the Spire 2"
       }
@@ -112,7 +112,7 @@ remote client at it. No port-forward needed.
 On the game host, bind to its Tailscale IP:
 
 ```powershell
-uv run --directory D:\repos\spire-lens-mcp\mcp python server.py `
+uv run --directory D:\repos\spirelens-mcp\mcp python server.py `
   --transport http --bind-host <host-tailscale-ip> --bind-port 15527
 ```
 
