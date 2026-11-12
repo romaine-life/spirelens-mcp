@@ -16,6 +16,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+      - uses: romaine-life/pipeline-templates/actions/check-fetches@main
+      - uses: romaine-life/pipeline-templates/actions/home-cache@main
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
