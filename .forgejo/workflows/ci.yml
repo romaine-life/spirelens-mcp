@@ -4,11 +4,22 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: romaine-life/pipeline-templates/actions/check-fetches@main
+
   whitespace:
     runs-on: [ubuntu-latest, upstairspc-linux]
     defaults:
@@ -16,7 +27,6 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-      - uses: romaine-life/pipeline-templates/actions/check-fetches@main
       - uses: romaine-life/pipeline-templates/actions/home-cache@main
       - uses: actions/setup-dotnet@v4
         with:
