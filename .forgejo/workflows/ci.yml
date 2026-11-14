@@ -28,9 +28,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: romaine-life/pipeline-templates/actions/home-cache@main
-      - uses: actions/setup-dotnet@v4
+      - uses: romaine-life/pipeline-templates/actions/setup-dotnet@main
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "9.0"
       # The game assemblies are proprietary; folder mode checks the C# syntax
       # without loading the game-dependent project.
       - run: dotnet format whitespace . --folder --verify-no-changes --verbosity diagnostic
@@ -43,7 +43,7 @@ jobs:
         working-directory: mcp
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: romaine-life/pipeline-templates/actions/setup-uv@main
         with:
           enable-cache: true
           cache-dependency-glob: "mcp/uv.lock"
