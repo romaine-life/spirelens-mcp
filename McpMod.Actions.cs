@@ -12,6 +12,7 @@ using MegaCrit.Sts2.Core.Nodes.Relics;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
 using MegaCrit.Sts2.Core.Nodes.Screens.TreasureRoomRelic;
 using MegaCrit.Sts2.Core.Entities.Merchant;
+using MegaCrit.Sts2.Core.Helpers;
 using MegaCrit.Sts2.Core.Models.Events;
 using MegaCrit.Sts2.Core.Nodes.Events;
 using MegaCrit.Sts2.Core.Nodes.Events.Custom;
@@ -355,7 +356,7 @@ public static partial class McpMod
             var merchUI = NMerchantRoom.Instance;
             if (merchUI?.Inventory != null && !merchUI.Inventory.IsOpen)
                 merchUI.OpenInventory();
-            inventory = merchantRoom.Inventories.FirstOrDefault();
+            inventory = GetLocalMerchantInventory(merchantRoom);
         }
         else if (player.RunState.CurrentRoom is EventRoom eventRoom
                  && eventRoom.CanonicalEvent is FakeMerchant
@@ -395,7 +396,7 @@ public static partial class McpMod
 
         int index = indexElem.GetInt32();
 
-        var allEntries = inventory.AllEntries.ToList();
+        var allEntries = ShopEntriesInStateOrder(inventory);
         if (index < 0 || index >= allEntries.Count)
             return Error($"Shop item index {index} out of range ({allEntries.Count} items)");
 
@@ -405,8 +406,10 @@ public static partial class McpMod
         if (!entry.EnoughGold)
             return Error($"Not enough gold (need {entry.Cost}, have {player.Gold})");
 
-        // Fire-and-forget purchase (same path as AutoSlay)
-        _ = entry.OnTryPurchaseWrapper(inventory);
+        var purchase = StartMerchantPurchase(entry, inventory);
+        if (purchase == null)
+            return Error("No shop purchase method was found on this game version.");
+        TaskHelper.RunSafely(purchase);
 
         return new Dictionary<string, object?>
         {

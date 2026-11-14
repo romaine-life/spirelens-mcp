@@ -491,14 +491,10 @@ public static partial class McpMod
         if (acts.Count == 0)
             return Error("No acts are registered in ModelDb.");
 
-        TaskHelper.RunSafely(NGame.Instance.StartNewSingleplayerRun(
-            character,
-            shouldSave: false,
-            acts,
-            Array.Empty<ModifierModel>(),
-            SeedHelper.CanonicalizeSeed(seed),
-            GameMode.Standard,
-            ascension));
+        var startRun = StartSingleplayerRun(character, acts, SeedHelper.CanonicalizeSeed(seed), ascension, out var startError);
+        if (startRun == null)
+            return Error(startError ?? "NGame.StartNewSingleplayerRun did not return a task.");
+        TaskHelper.RunSafely(startRun);
 
         return new Dictionary<string, object?>
         {

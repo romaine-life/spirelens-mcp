@@ -143,24 +143,32 @@ public static partial class McpMod
         {
             if (!IsInInstantModeLine(__instance)) return;
 
-            // Build a HoverTip with custom strings via reflection
-            // (HoverTip is a record struct; Title/Description have private setters)
-            object boxed = (object)default(HoverTip);
-            var ht = typeof(HoverTip);
-            ht.GetProperty("Id")!.SetValue(boxed, "sts2mcp_instant_mode");
-            ht.GetProperty("Title")!.GetSetMethod(true)!
-                .Invoke(boxed, ["Instant Mode"]);
-            ht.GetProperty("Description")!.GetSetMethod(true)!
-                .Invoke(boxed, [
-                    "This option is added by the STS2MCP mod.\n" +
-                    "When enabled, most in-game animations will become instant.\n" +
-                    "Can reduce token usage as get-state calls will no longer receive an intermediate state."
-                ]);
+            try
+            {
+                // HoverTip is a record struct with no public way to set its strings.
+                object boxed = default(HoverTip);
+                bool built =
+                    TrySetAutoProperty(boxed, "Id", "sts2mcp_instant_mode")
+                    && TrySetAutoProperty(boxed, "Title", "Instant Mode")
+                    && TrySetAutoProperty(boxed, "Description",
+                        "This option is added by the STS2MCP mod.\n" +
+                        "When enabled, most in-game animations will become instant.\n" +
+                        "Can reduce token usage as get-state calls will no longer receive an intermediate state.");
+                var hoverTipField = typeof(NFastModeHoverTip)
+                    .GetField("_hoverTip", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (!built || hoverTipField == null)
+                {
+                    GD.PrintErr("[SpireLens MCP] Instant Mode tooltip unavailable on this game version; keeping the Fast Mode tooltip");
+                    return;
+                }
 
-            // Replace the _hoverTip field set by the original _Ready
-            typeof(NFastModeHoverTip)
-                .GetField("_hoverTip", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?.SetValue(__instance, (IHoverTip)boxed);
+                // Replace the tip the original _Ready set
+                hoverTipField.SetValue(__instance, (IHoverTip)boxed);
+            }
+            catch (Exception ex)
+            {
+                GD.PrintErr($"[SpireLens MCP] Instant Mode tooltip injection failed; keeping the Fast Mode tooltip: {ex.Message}");
+            }
         }
     }
 }
