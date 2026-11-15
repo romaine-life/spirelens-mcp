@@ -21,7 +21,7 @@ jobs:
       - uses: romaine-life/pipeline-templates/actions/check-fetches@main
 
   whitespace:
-    runs-on: [ubuntu-latest, upstairspc-linux]
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
@@ -36,7 +36,7 @@ jobs:
       - run: dotnet format whitespace . --folder --verify-no-changes --verbosity diagnostic
 
   pytest:
-    runs-on: [ubuntu-latest, upstairspc-linux]
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
