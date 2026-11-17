@@ -1,0 +1,36 @@
+name: Checks
+
+# The check no suite runs here: C# whitespace without the game's assemblies, which the
+# dotnet suite's restore and build need. The python suite tests mcp/ and the docs suite
+# checks the Markdown (pipeline-templates fleet.json).
+
+on:
+  pull_request:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check-whitespace:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git diff --name-only "$BASE...HEAD" | grep -qE '\.(cs|csproj|sln)$|^\.editorconfig$'; then echo csharp=true >> "$GITHUB_OUTPUT"; fi
+      - if: steps.diff.outputs.csharp == 'true'
+        uses: romaine-life/pipeline-templates/actions/home-cache@main
+      - if: steps.diff.outputs.csharp == 'true'
+        uses: romaine-life/pipeline-templates/actions/setup-dotnet@main
+        with:
+          dotnet-version: '9.0'
+      - name: Check C# whitespace without game assemblies
+        if: steps.diff.outputs.csharp == 'true'
+        run: dotnet format whitespace . --folder --verify-no-changes --verbosity diagnostic

@@ -86,7 +86,9 @@ def test_actor_email_allowlist_rejects_unlisted():
 
 def test_wrong_role_rejected():
     priv, pub = _keypair()
-    tok = _sign(priv, iss=ISSUER, role="user", exp=_now() + datetime.timedelta(minutes=5))
+    tok = _sign(
+        priv, iss=ISSUER, role="user", exp=_now() + datetime.timedelta(minutes=5)
+    )
     with pytest.raises(server._AuthError):
         _verify(tok, pub)
 
@@ -156,7 +158,9 @@ def test_sts2_launcher_prefers_configured_scheduled_task(monkeypatch):
     }
 
 
-def test_sts2_launcher_finds_executable_under_configured_game_dir(tmp_path, monkeypatch):
+def test_sts2_launcher_finds_executable_under_configured_game_dir(
+    tmp_path, monkeypatch
+):
     monkeypatch.delenv("SPIRELENS_HOST_STS2_LAUNCH_TASK", raising=False)
     game_dir = tmp_path / "Slay the Spire 2"
     game_dir.mkdir()
@@ -216,7 +220,9 @@ def test_bridge_connect_error_is_structured_host_status(monkeypatch):
     monkeypatch.setenv("SPIRELENS_HOST_STS2_LAUNCH_TASK", "SpireLens STS2 Launch")
     monkeypatch.delenv("STS2_GAME_DIR", raising=False)
 
-    status = json.loads(server._handle_error(server.httpx.ConnectError("connection refused")))
+    status = json.loads(
+        server._handle_error(server.httpx.ConnectError("connection refused"))
+    )
 
     assert status["status"] == "game_not_running"
     assert status["bridge"]["error_type"] == "connect_error"
@@ -238,12 +244,14 @@ def test_stop_sts2_processes_uses_taskkill_on_windows(monkeypatch):
     monkeypatch.setattr(server.platform, "system", lambda: "Windows")
     monkeypatch.setattr(server.subprocess, "run", fake_run)
 
-    result = server._stop_sts2_processes([
-        {
-            "image_name": "SlayTheSpire2.exe",
-            "pid": "61248",
-        }
-    ])
+    result = server._stop_sts2_processes(
+        [
+            {
+                "image_name": "SlayTheSpire2.exe",
+                "pid": "61248",
+            }
+        ]
+    )
 
     assert result["requested"] is True
     assert result["success"] is True
@@ -308,10 +316,16 @@ def test_stop_sts2_waits_until_process_exits(monkeypatch):
         return True
 
     monkeypatch.setattr(server, "_host_status_payload", host_status)
-    monkeypatch.setattr(server, "_stop_sts2_processes", lambda _processes: {"requested": True, "success": True})
+    monkeypatch.setattr(
+        server,
+        "_stop_sts2_processes",
+        lambda _processes: {"requested": True, "success": True},
+    )
     monkeypatch.setattr(server, "_wait_for_pids_exit_blocking", fake_wait_for_exit)
 
-    result = json.loads(asyncio.run(server.stop_sts2(wait_for_exit=True, timeout_seconds=5)))
+    result = json.loads(
+        asyncio.run(server.stop_sts2(wait_for_exit=True, timeout_seconds=5))
+    )
 
     assert waited == {"pids": [61248], "timeout": 5}
     assert result["action"] == "stopped"
@@ -321,26 +335,56 @@ def test_stop_sts2_waits_until_process_exits(monkeypatch):
 
 def test_stop_sts2_reports_timeout_when_process_handles_stay_open(monkeypatch):
     statuses = [
-        {"status": "ready", "game": {"running": True, "processes": [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}]}},
-        {"status": "ready", "game": {"running": True, "processes": [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}]}},
+        {
+            "status": "ready",
+            "game": {
+                "running": True,
+                "processes": [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}],
+            },
+        },
+        {
+            "status": "ready",
+            "game": {
+                "running": True,
+                "processes": [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}],
+            },
+        },
     ]
 
     async def host_status():
         return statuses.pop(0)
 
     monkeypatch.setattr(server, "_host_status_payload", host_status)
-    monkeypatch.setattr(server, "_stop_sts2_processes", lambda _processes: {"requested": True, "success": True})
-    monkeypatch.setattr(server, "_wait_for_pids_exit_blocking", lambda _pids, _timeout: False)
+    monkeypatch.setattr(
+        server,
+        "_stop_sts2_processes",
+        lambda _processes: {"requested": True, "success": True},
+    )
+    monkeypatch.setattr(
+        server, "_wait_for_pids_exit_blocking", lambda _pids, _timeout: False
+    )
 
-    result = json.loads(asyncio.run(server.stop_sts2(wait_for_exit=True, timeout_seconds=5)))
+    result = json.loads(
+        asyncio.run(server.stop_sts2(wait_for_exit=True, timeout_seconds=5))
+    )
 
     assert result["action"] == "stop_timeout"
 
 
 def test_start_sts2_waits_on_bridge_ready_file(tmp_path, monkeypatch):
     statuses = [
-        {"status": "game_not_running", "game": {"running": False, "processes": []}, "launcher": {"available": True, "kind": "scheduled_task", "task_name": "t"}},
-        {"status": "ready", "game": {"running": True, "processes": [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}]}},
+        {
+            "status": "game_not_running",
+            "game": {"running": False, "processes": []},
+            "launcher": {"available": True, "kind": "scheduled_task", "task_name": "t"},
+        },
+        {
+            "status": "ready",
+            "game": {
+                "running": True,
+                "processes": [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}],
+            },
+        },
     ]
 
     async def host_status():
@@ -356,10 +400,16 @@ def test_start_sts2_waits_on_bridge_ready_file(tmp_path, monkeypatch):
 
     monkeypatch.setenv("SPIRELENS_BRIDGE_READY_FILE", str(ready_file))
     monkeypatch.setattr(server, "_host_status_payload", host_status)
-    monkeypatch.setattr(server, "_start_sts2_with_launcher", lambda _launcher: {"launcher": "scheduled_task"})
+    monkeypatch.setattr(
+        server,
+        "_start_sts2_with_launcher",
+        lambda _launcher: {"launcher": "scheduled_task"},
+    )
     monkeypatch.setattr(server, "_wait_for_ready_file_blocking", fake_wait_for_ready)
 
-    result = json.loads(asyncio.run(server.start_sts2(wait_for_bridge=True, timeout_seconds=7)))
+    result = json.loads(
+        asyncio.run(server.start_sts2(wait_for_bridge=True, timeout_seconds=7))
+    )
 
     assert waited == {"path": ready_file, "timeout": 7}
     assert result["action"] == "started_and_ready"
@@ -369,7 +419,11 @@ def test_ready_file_must_name_a_live_sts2_process(tmp_path, monkeypatch):
     ready_file = tmp_path / "bridge-ready.json"
     ready_file.write_text(json.dumps({"pid": 61248, "port": 15526}), encoding="utf-8")
 
-    monkeypatch.setattr(server, "_list_sts2_processes", lambda: [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}])
+    monkeypatch.setattr(
+        server,
+        "_list_sts2_processes",
+        lambda: [{"image_name": "SlayTheSpire2.exe", "pid": "61248"}],
+    )
     assert server._read_valid_ready_file(ready_file) == {"pid": 61248, "port": 15526}
 
     monkeypatch.setattr(server, "_list_sts2_processes", lambda: [])
@@ -380,36 +434,42 @@ def test_restart_sts2_combines_stop_and_start(monkeypatch):
     async def fake_stop_sts2(wait_for_exit=True, timeout_seconds=45):
         assert wait_for_exit is True
         assert timeout_seconds == 30
-        return json.dumps({
-            "action": "stopped",
-            "status": "game_not_running",
-            "game": {
-                "running": False,
-                "processes": [],
-            },
-        })
+        return json.dumps(
+            {
+                "action": "stopped",
+                "status": "game_not_running",
+                "game": {
+                    "running": False,
+                    "processes": [],
+                },
+            }
+        )
 
     async def fake_start_sts2(wait_for_bridge=True, timeout_seconds=90):
         assert wait_for_bridge is True
         assert 0 <= timeout_seconds <= 30
-        return json.dumps({
-            "action": "started_and_ready",
-            "status": "ready",
-            "game": {
-                "running": True,
-                "processes": [
-                    {
-                        "image_name": "SlayTheSpire2.exe",
-                        "pid": "61248",
-                    }
-                ],
-            },
-        })
+        return json.dumps(
+            {
+                "action": "started_and_ready",
+                "status": "ready",
+                "game": {
+                    "running": True,
+                    "processes": [
+                        {
+                            "image_name": "SlayTheSpire2.exe",
+                            "pid": "61248",
+                        }
+                    ],
+                },
+            }
+        )
 
     monkeypatch.setattr(server, "stop_sts2", fake_stop_sts2)
     monkeypatch.setattr(server, "start_sts2", fake_start_sts2)
 
-    result = json.loads(asyncio.run(server.restart_sts2(wait_for_bridge=True, timeout_seconds=30)))
+    result = json.loads(
+        asyncio.run(server.restart_sts2(wait_for_bridge=True, timeout_seconds=30))
+    )
 
     assert result["action"] == "restarted_ready"
     assert result["status"] == "ready"

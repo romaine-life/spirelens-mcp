@@ -21,4 +21,11 @@ sts2-mcp = "server:main"
 [dependency-groups]
 # Dev-only: unit tests for the --auth-mode jwt path. Run via
 # `uv run --group dev pytest`.
-dev = ["pytest>=8.0.0"]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.17.5",
+]
+
+[tool.ruff.lint]
+# ruff's long-standing default rules; ruff 0.17 widened its defaults (blind-except and more).
+select = ["E4", "E7", "E9", "F"]

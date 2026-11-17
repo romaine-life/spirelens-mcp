@@ -15,7 +15,6 @@ import os
 import platform
 import re
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
@@ -64,7 +63,13 @@ def _configured_game_dir() -> Path | None:
     candidates = [
         Path(r"D:\SteamLibrary\steamapps\common\Slay the Spire 2"),
         Path(r"C:\Program Files (x86)\Steam\steamapps\common\Slay the Spire 2"),
-        Path.home() / "Library" / "Application Support" / "Steam" / "steamapps" / "common" / "Slay the Spire 2",
+        Path.home()
+        / "Library"
+        / "Application Support"
+        / "Steam"
+        / "steamapps"
+        / "common"
+        / "Slay the Spire 2",
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -96,13 +101,15 @@ def _list_sts2_processes() -> list[dict]:
         image_name = row[0].strip()
         if image_name.lower() not in _STS2_PROCESS_NAMES:
             continue
-        processes.append({
-            "image_name": image_name,
-            "pid": row[1].strip(),
-            "session_name": row[2].strip(),
-            "session_number": row[3].strip(),
-            "memory": row[4].strip(),
-        })
+        processes.append(
+            {
+                "image_name": image_name,
+                "pid": row[1].strip(),
+                "session_name": row[2].strip(),
+                "session_number": row[3].strip(),
+                "memory": row[4].strip(),
+            }
+        )
     return processes
 
 
@@ -163,7 +170,13 @@ def _start_sts2_with_launcher(launcher: dict) -> dict:
             check=False,
         )
         if result.returncode != 0:
-            raise RuntimeError((result.stderr or result.stdout or f"schtasks exited {result.returncode}").strip())
+            raise RuntimeError(
+                (
+                    result.stderr
+                    or result.stdout
+                    or f"schtasks exited {result.returncode}"
+                ).strip()
+            )
         return {
             "launcher": kind,
             "task_name": task_name,
@@ -176,7 +189,11 @@ def _start_sts2_with_launcher(launcher: dict) -> dict:
         raise RuntimeError("launcher did not include a path")
 
     if kind == "batch":
-        cmd = ["cmd.exe", "/c", path] if platform.system().lower() == "windows" else [path]
+        cmd = (
+            ["cmd.exe", "/c", path]
+            if platform.system().lower() == "windows"
+            else [path]
+        )
     else:
         cmd = [path]
     flags = 0
@@ -222,11 +239,13 @@ def _stop_sts2_processes(processes: list[dict]) -> dict:
             "image_name": process.get("image_name"),
         }
         if not pid.isdigit():
-            entry.update({
-                "requested": False,
-                "success": False,
-                "error": "invalid_pid",
-            })
+            entry.update(
+                {
+                    "requested": False,
+                    "success": False,
+                    "error": "invalid_pid",
+                }
+            )
             results.append(entry)
             continue
 
@@ -238,20 +257,24 @@ def _stop_sts2_processes(processes: list[dict]) -> dict:
                 timeout=20,
                 check=False,
             )
-            entry.update({
-                "requested": True,
-                "success": result.returncode == 0,
-                "returncode": result.returncode,
-                "stdout": result.stdout.strip(),
-                "stderr": result.stderr.strip(),
-            })
+            entry.update(
+                {
+                    "requested": True,
+                    "success": result.returncode == 0,
+                    "returncode": result.returncode,
+                    "stdout": result.stdout.strip(),
+                    "stderr": result.stderr.strip(),
+                }
+            )
         except Exception as e:
-            entry.update({
-                "requested": True,
-                "success": False,
-                "error_type": e.__class__.__name__,
-                "error": str(e),
-            })
+            entry.update(
+                {
+                    "requested": True,
+                    "success": False,
+                    "error_type": e.__class__.__name__,
+                    "error": str(e),
+                }
+            )
         results.append(entry)
 
     return {
@@ -304,13 +327,22 @@ def _kernel32():
 
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.FindFirstChangeNotificationW.restype = wintypes.HANDLE
-    k32.FindFirstChangeNotificationW.argtypes = [wintypes.LPCWSTR, wintypes.BOOL, wintypes.DWORD]
+    k32.FindFirstChangeNotificationW.argtypes = [
+        wintypes.LPCWSTR,
+        wintypes.BOOL,
+        wintypes.DWORD,
+    ]
     k32.FindNextChangeNotification.argtypes = [wintypes.HANDLE]
     k32.FindCloseChangeNotification.argtypes = [wintypes.HANDLE]
     k32.WaitForSingleObject.restype = wintypes.DWORD
     k32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
     k32.WaitForMultipleObjects.restype = wintypes.DWORD
-    k32.WaitForMultipleObjects.argtypes = [wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE), wintypes.BOOL, wintypes.DWORD]
+    k32.WaitForMultipleObjects.argtypes = [
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.HANDLE),
+        wintypes.BOOL,
+        wintypes.DWORD,
+    ]
     k32.OpenProcess.restype = wintypes.HANDLE
     k32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
     k32.CloseHandle.argtypes = [wintypes.HANDLE]
@@ -324,7 +356,10 @@ def _wait_for_ready_file_blocking(path: Path, timeout_seconds: float) -> dict | 
     k32 = _kernel32()
     path.parent.mkdir(parents=True, exist_ok=True)
     handle = k32.FindFirstChangeNotificationW(
-        str(path.parent), False, _FILE_NOTIFY_CHANGE_FILE_NAME | _FILE_NOTIFY_CHANGE_LAST_WRITE)
+        str(path.parent),
+        False,
+        _FILE_NOTIFY_CHANGE_FILE_NAME | _FILE_NOTIFY_CHANGE_LAST_WRITE,
+    )
     if not handle or handle == _INVALID_HANDLE_VALUE:
         raise OSError(f"could not watch {path.parent}")
     deadline = time.monotonic() + timeout_seconds
@@ -348,7 +383,6 @@ def _wait_for_pids_exit_blocking(pids: list[int], timeout_seconds: float) -> boo
     """Blocks on the processes' handles until all have exited or the timeout passes."""
     if platform.system().lower() != "windows" or not pids:
         return not pids
-    import ctypes
     from ctypes import wintypes
 
     k32 = _kernel32()
@@ -361,7 +395,9 @@ def _wait_for_pids_exit_blocking(pids: list[int], timeout_seconds: float) -> boo
         if not handles:
             return True
         arr = (wintypes.HANDLE * len(handles))(*handles)
-        result = k32.WaitForMultipleObjects(len(handles), arr, True, int(max(0, timeout_seconds) * 1000))
+        result = k32.WaitForMultipleObjects(
+            len(handles), arr, True, int(max(0, timeout_seconds) * 1000)
+        )
         return result != _WAIT_TIMEOUT and result < _WAIT_OBJECT_0 + len(handles)
     finally:
         for h in handles:
@@ -419,7 +455,9 @@ def _classify_host_status(bridge: dict) -> dict:
     if bridge.get("reachable") and body.get("ready") is False:
         status = "bridge_starting"
         diagnosis = "The in-game bridge is listening, but game startup (logo, main menu) has not finished."
-        next_actions = ["Call start_sts2(wait_for_bridge=true); it returns when startup completes."]
+        next_actions = [
+            "Call start_sts2(wait_for_bridge=true); it returns when startup completes."
+        ]
     elif bridge.get("reachable"):
         status = "ready"
         diagnosis = "The in-game SpireLens MCP bridge is reachable."
@@ -427,11 +465,15 @@ def _classify_host_status(bridge: dict) -> dict:
     elif not game_running:
         status = "game_not_running"
         diagnosis = "STS2 is not running on the MCP host, so localhost bridge port 15526 is absent."
-        next_actions = ["Call start_sts2 to launch STS2 on the MCP host, then re-run bridge_health."]
+        next_actions = [
+            "Call start_sts2 to launch STS2 on the MCP host, then re-run bridge_health."
+        ]
     else:
         status = "bridge_unreachable"
         diagnosis = "STS2 appears to be running, but the in-game bridge is not reachable. Check that SpireLensMcpBridge is installed and enabled in the mod set."
-        next_actions = ["Check STS2 mod loading/logs, or call restart_sts2 after confirming SpireLensMcpBridge is installed."]
+        next_actions = [
+            "Check STS2 mod loading/logs, or call restart_sts2 after confirming SpireLensMcpBridge is installed."
+        ]
 
     return {
         "status": status,
@@ -510,8 +552,6 @@ async def _screenshot_get() -> dict:
         return r.json()
 
 
-
-
 def _safe_screenshot_name(name: str | None) -> str:
     value = (name or "sts2-screenshot").strip()
     if not value:
@@ -587,7 +627,15 @@ def _current_run_save_path() -> Path:
     steam_id = os.environ.get("STS2_STEAM_ID", "76561198062015438").strip()
     profile = os.environ.get("STS2_PROFILE", "profile1").strip()
     namespace = os.environ.get("STS2_SAVE_NAMESPACE", "modded").strip()
-    return _user_data_dir() / "steam" / steam_id / namespace / profile / "saves" / "current_run.save"
+    return (
+        _user_data_dir()
+        / "steam"
+        / steam_id
+        / namespace
+        / profile
+        / "saves"
+        / "current_run.save"
+    )
 
 
 def _game_path_to_filesystem(path: str) -> Path:
@@ -614,14 +662,18 @@ def _current_run_save_path_from_context(context: dict | None) -> Path:
         return Path(configured)
 
     if context:
-        full_path = context.get("current_run_save_full_path") or context.get("current_run_save_path")
+        full_path = context.get("current_run_save_full_path") or context.get(
+            "current_run_save_path"
+        )
         if isinstance(full_path, str) and full_path.strip():
             return _game_path_to_filesystem(full_path)
 
     return _current_run_save_path()
 
 
-def _steam_remote_current_run_save_path(appdata_current: Path | None = None) -> Path | None:
+def _steam_remote_current_run_save_path(
+    appdata_current: Path | None = None,
+) -> Path | None:
     configured = os.environ.get("STS2_STEAM_REMOTE_CURRENT_RUN_SAVE")
     if configured and configured.strip():
         return Path(configured)
@@ -641,7 +693,11 @@ def _steam_remote_current_run_save_path(appdata_current: Path | None = None) -> 
     ]:
         if root.exists():
             candidates.extend(root.glob(f"*/2868840/remote/{suffix.as_posix()}"))
-            candidates.extend(remote / suffix for remote in root.glob("*/2868840/remote") if remote.is_dir())
+            candidates.extend(
+                remote / suffix
+                for remote in root.glob("*/2868840/remote")
+                if remote.is_dir()
+            )
 
     existing = [p for p in candidates if p.exists()]
     if existing:
@@ -713,7 +769,11 @@ def _normalize_encounter_id(encounter_id: str) -> str:
 def _catalog_query_id(value: str, prefix: str) -> str:
     stripped = value.strip()
     normalized_prefix = f"{prefix.upper()}."
-    return stripped[len(normalized_prefix) :] if stripped.upper().startswith(normalized_prefix) else stripped
+    return (
+        stripped[len(normalized_prefix) :]
+        if stripped.upper().startswith(normalized_prefix)
+        else stripped
+    )
 
 
 def _normalize_catalog_key(value: str) -> str:
@@ -787,24 +847,33 @@ def _filter_known_encounters(
     limit: int = 50,
 ) -> list[dict]:
     normalized_room_type = (room_type or "").strip().lower()
-    normalized_query = _normalize_catalog_key(_catalog_query_id(query or "", "ENCOUNTER"))
+    normalized_query = _normalize_catalog_key(
+        _catalog_query_id(query or "", "ENCOUNTER")
+    )
     matches = []
     for encounter_id in _known_save_encounter_ids():
         info = _known_encounter_info(encounter_id)
-        if normalized_room_type and str(info.get("room_type") or "").lower() != normalized_room_type:
+        if (
+            normalized_room_type
+            and str(info.get("room_type") or "").lower() != normalized_room_type
+        ):
             continue
         haystacks = [
             _normalize_catalog_key(str(info.get("id") or "")),
             _normalize_catalog_key(str(info.get("name") or "")),
         ]
-        if normalized_query and not any(normalized_query in haystack for haystack in haystacks):
+        if normalized_query and not any(
+            normalized_query in haystack for haystack in haystacks
+        ):
             continue
         matches.append(info)
     return matches[: max(1, min(limit, 300))]
 
 
 def _lookup_result(kind: str, query: str, matches: list[dict]) -> dict:
-    status = "ok" if len(matches) == 1 else "not_found" if len(matches) == 0 else "ambiguous"
+    status = (
+        "ok" if len(matches) == 1 else "not_found" if len(matches) == 0 else "ambiguous"
+    )
     result = {
         "status": status,
         "kind": kind,
@@ -817,7 +886,9 @@ def _lookup_result(kind: str, query: str, matches: list[dict]) -> dict:
     elif len(matches) == 0:
         result["error"] = f"No {kind} matched '{query}'."
     else:
-        result["error"] = f"{len(matches)} {kind}s matched '{query}'. The issue is ambiguous."
+        result["error"] = (
+            f"{len(matches)} {kind}s matched '{query}'. The issue is ambiguous."
+        )
     return result
 
 
@@ -853,7 +924,9 @@ def _is_exact_catalog_hit(match: dict, query: str, prefix: str | None) -> bool:
     return False
 
 
-def _collapse_exact_catalog_match(data: dict, kind: str, query: str, prefix: str | None) -> dict:
+def _collapse_exact_catalog_match(
+    data: dict, kind: str, query: str, prefix: str | None
+) -> dict:
     """Collapse a substring-ambiguous catalog lookup to a single ``ok`` result
     when exactly one match exactly hits the query by id or display name.
 
@@ -876,7 +949,11 @@ def _collapse_exact_catalog_match(data: dict, kind: str, query: str, prefix: str
     matches = data.get("matches")
     if not isinstance(matches, list):
         return data
-    exact = [m for m in matches if isinstance(m, dict) and _is_exact_catalog_hit(m, query, prefix)]
+    exact = [
+        m
+        for m in matches
+        if isinstance(m, dict) and _is_exact_catalog_hit(m, query, prefix)
+    ]
     if len(exact) != 1:
         return data
     collapsed = dict(data)
@@ -889,7 +966,9 @@ def _collapse_exact_catalog_match(data: dict, kind: str, query: str, prefix: str
     return collapsed
 
 
-async def _catalog_lookup_passthrough(body: dict, kind: str, query: str, prefix: str | None) -> str:
+async def _catalog_lookup_passthrough(
+    body: dict, kind: str, query: str, prefix: str | None
+) -> str:
     """POST a catalog lookup action and collapse false substring-ambiguity to a
     single exact hit before handing the JSON back to the caller. Falls back to the
     raw response untouched if it is not collapsible JSON or not actually ambiguous.
@@ -905,7 +984,15 @@ async def _catalog_lookup_passthrough(body: dict, kind: str, query: str, prefix:
 
 async def _lookup_encounter_data(query: str, max_matches: int = 10) -> dict:
     try:
-        data = json.loads(await _catalog_post({"action": "lookup_encounter", "query": query, "max_matches": max_matches}))
+        data = json.loads(
+            await _catalog_post(
+                {
+                    "action": "lookup_encounter",
+                    "query": query,
+                    "max_matches": max_matches,
+                }
+            )
+        )
         if data.get("status") in ("ok", "ambiguous"):
             return data
     except Exception:
@@ -921,12 +1008,16 @@ async def _list_encounters_data(
     limit: int = 50,
 ) -> dict:
     try:
-        data = json.loads(await _catalog_post({
-            "action": "list_encounters",
-            "room_type": room_type or "",
-            "query": query or "",
-            "limit": limit,
-        }))
+        data = json.loads(
+            await _catalog_post(
+                {
+                    "action": "list_encounters",
+                    "room_type": room_type or "",
+                    "query": query or "",
+                    "limit": limit,
+                }
+            )
+        )
         if int(data.get("count") or 0) > 0:
             return data
     except Exception:
@@ -942,18 +1033,26 @@ async def _list_encounters_data(
     }
 
 
-async def _lookup_catalog_unique(action: str, kind: str, query: str, prefix: str | None = None) -> dict:
+async def _lookup_catalog_unique(
+    action: str, kind: str, query: str, prefix: str | None = None
+) -> dict:
     lookup_query = _catalog_query_id(query, prefix) if prefix else query.strip()
     if action == "lookup_encounter":
         data = await _lookup_encounter_data(lookup_query, 10)
     else:
-        data = json.loads(await _catalog_post({"action": action, "query": lookup_query, "max_matches": 10}))
+        data = json.loads(
+            await _catalog_post(
+                {"action": action, "query": lookup_query, "max_matches": 10}
+            )
+        )
     status = data.get("status")
     if status == "ambiguous" and prefix is not None:
         exact_id = lookup_query.strip().upper()
         exact_matches = [
-            item for item in data.get("matches", [])
-            if isinstance(item, dict) and str(item.get("id") or "").strip().upper() == exact_id
+            item
+            for item in data.get("matches", [])
+            if isinstance(item, dict)
+            and str(item.get("id") or "").strip().upper() == exact_id
         ]
         if len(exact_matches) == 1:
             data = {"status": "ok", kind: exact_matches[0]}
@@ -962,9 +1061,18 @@ async def _lookup_catalog_unique(action: str, kind: str, query: str, prefix: str
         error = data.get("error") or f"status={status}"
         raise ValueError(f"Invalid {kind} id {query!r}: {error}")
     item = data.get(kind)
-    if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not item["id"].strip():
-        raise ValueError(f"Catalog lookup for {kind} {query!r} did not return a usable id.")
-    if prefix is not None and item["id"].strip().upper() != lookup_query.strip().upper():
+    if (
+        not isinstance(item, dict)
+        or not isinstance(item.get("id"), str)
+        or not item["id"].strip()
+    ):
+        raise ValueError(
+            f"Catalog lookup for {kind} {query!r} did not return a usable id."
+        )
+    if (
+        prefix is not None
+        and item["id"].strip().upper() != lookup_query.strip().upper()
+    ):
         raise ValueError(
             f"Invalid {kind} id {query!r}: nearest catalog match is {item['id']!r}, "
             "but scenario saves require exact catalog ids."
@@ -981,15 +1089,19 @@ async def _validate_scenario_ids(
     remove_relics: list[str] | None,
     next_normal_encounter: str | None,
 ) -> dict:
-    async def validate_many(values: list[str] | None, action: str, kind: str, prefix: str) -> list[dict]:
+    async def validate_many(
+        values: list[str] | None, action: str, kind: str, prefix: str
+    ) -> list[dict]:
         result = []
         for value in values or []:
             item = await _lookup_catalog_unique(action, kind, value, prefix)
-            result.append({
-                "input": value,
-                "id": item["id"],
-                "name": item.get("name"),
-            })
+            result.append(
+                {
+                    "input": value,
+                    "id": item["id"],
+                    "name": item.get("name"),
+                }
+            )
         return result
 
     validation = {
@@ -997,17 +1109,25 @@ async def _validate_scenario_ids(
         "cards": {
             "deck": await validate_many(deck, "lookup_card", "card", "CARD"),
             "add_cards": await validate_many(add_cards, "lookup_card", "card", "CARD"),
-            "remove_cards": await validate_many(remove_cards, "lookup_card", "card", "CARD"),
+            "remove_cards": await validate_many(
+                remove_cards, "lookup_card", "card", "CARD"
+            ),
         },
         "relics": {
             "relics": await validate_many(relics, "lookup_relic", "relic", "RELIC"),
-            "add_relics": await validate_many(add_relics, "lookup_relic", "relic", "RELIC"),
-            "remove_relics": await validate_many(remove_relics, "lookup_relic", "relic", "RELIC"),
+            "add_relics": await validate_many(
+                add_relics, "lookup_relic", "relic", "RELIC"
+            ),
+            "remove_relics": await validate_many(
+                remove_relics, "lookup_relic", "relic", "RELIC"
+            ),
         },
         "encounter": None,
     }
     if next_normal_encounter is not None:
-        encounter = await _lookup_catalog_unique("lookup_encounter", "encounter", next_normal_encounter, "ENCOUNTER")
+        encounter = await _lookup_catalog_unique(
+            "lookup_encounter", "encounter", next_normal_encounter, "ENCOUNTER"
+        )
         validation["encounter"] = {
             "input": next_normal_encounter,
             "id": encounter["id"],
@@ -1022,16 +1142,26 @@ def _resolved_ids(items: list[dict]) -> list[str]:
 
 
 def _card_entry(card_id: str, floor_added_to_deck: int = 1) -> dict:
-    return {"floor_added_to_deck": floor_added_to_deck, "id": _normalize_card_id(card_id)}
+    return {
+        "floor_added_to_deck": floor_added_to_deck,
+        "id": _normalize_card_id(card_id),
+    }
 
 
 def _relic_entry(relic_id: str, floor_added_to_deck: int = 1) -> dict:
-    return {"floor_added_to_deck": floor_added_to_deck, "id": _normalize_relic_id(relic_id)}
+    return {
+        "floor_added_to_deck": floor_added_to_deck,
+        "id": _normalize_relic_id(relic_id),
+    }
 
 
 def _save_summary(data: dict) -> dict:
     players = data.get("players")
-    player = players[0] if isinstance(players, list) and players and isinstance(players[0], dict) else {}
+    player = (
+        players[0]
+        if isinstance(players, list) and players and isinstance(players[0], dict)
+        else {}
+    )
     deck = player.get("deck") if isinstance(player.get("deck"), list) else []
     relics = player.get("relics") if isinstance(player.get("relics"), list) else []
     return {
@@ -1067,17 +1197,25 @@ def _save_viewport_png(output_path: Path, metadata: dict) -> dict:
 
 def _handle_error(e: Exception) -> str:
     if isinstance(e, httpx.ConnectError):
-        return _json(_classify_host_status({
-            "reachable": False,
-            "error_type": "connect_error",
-            "error": str(e),
-        }))
+        return _json(
+            _classify_host_status(
+                {
+                    "reachable": False,
+                    "error_type": "connect_error",
+                    "error": str(e),
+                }
+            )
+        )
     if isinstance(e, httpx.TimeoutException):
-        return _json(_classify_host_status({
-            "reachable": False,
-            "error_type": "timeout",
-            "error": str(e),
-        }))
+        return _json(
+            _classify_host_status(
+                {
+                    "reachable": False,
+                    "error_type": "timeout",
+                    "error": str(e),
+                }
+            )
+        )
     if isinstance(e, httpx.HTTPStatusError):
         return f"Error: HTTP {e.response.status_code} — {e.response.text}"
     return f"Error: {e}"
@@ -1100,7 +1238,10 @@ async def lookup_card(query: str, max_matches: int = 10) -> str:
     """
     try:
         return await _catalog_lookup_passthrough(
-            {"action": "lookup_card", "query": query, "max_matches": max_matches}, "card", query, "CARD"
+            {"action": "lookup_card", "query": query, "max_matches": max_matches},
+            "card",
+            query,
+            "CARD",
         )
     except Exception as e:
         return _handle_error(e)
@@ -1125,13 +1266,15 @@ async def list_cards(
         limit: Maximum cards to return.
     """
     try:
-        return await _catalog_post({
-            "action": "list_cards",
-            "owner": owner or "",
-            "type": type or "",
-            "query": query or "",
-            "limit": limit,
-        })
+        return await _catalog_post(
+            {
+                "action": "list_cards",
+                "owner": owner or "",
+                "type": type or "",
+                "query": query or "",
+                "limit": limit,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1150,7 +1293,10 @@ async def lookup_relic(query: str, max_matches: int = 10) -> str:
     """
     try:
         return await _catalog_lookup_passthrough(
-            {"action": "lookup_relic", "query": query, "max_matches": max_matches}, "relic", query, "RELIC"
+            {"action": "lookup_relic", "query": query, "max_matches": max_matches},
+            "relic",
+            query,
+            "RELIC",
         )
     except Exception as e:
         return _handle_error(e)
@@ -1172,12 +1318,14 @@ async def list_relics(
         limit: Maximum relics to return.
     """
     try:
-        return await _catalog_post({
-            "action": "list_relics",
-            "rarity": rarity or "",
-            "query": query or "",
-            "limit": limit,
-        })
+        return await _catalog_post(
+            {
+                "action": "list_relics",
+                "rarity": rarity or "",
+                "query": query or "",
+                "limit": limit,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1206,7 +1354,10 @@ async def list_encounters(
 ) -> str:
     """List known encounter ids for scenario save setup with optional filters."""
     try:
-        return json.dumps(await _list_encounters_data(room_type=room_type, query=query, limit=limit), indent=2)
+        return json.dumps(
+            await _list_encounters_data(room_type=room_type, query=query, limit=limit),
+            indent=2,
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1260,6 +1411,8 @@ async def get_catalog_summary() -> str:
         return await _catalog_get()
     except Exception as e:
         return _handle_error(e)
+
+
 @mcp.tool()
 async def capture_screenshot(name: str | None = None) -> str:
     """Capture the full Slay the Spire 2 game viewport.
@@ -1291,7 +1444,10 @@ async def list_save_files(kind: str = "base") -> str:
         if kind == "base":
             user_root = _base_save_dir()
             bundled_root = _bundled_base_save_dir()
-            roots: list[tuple[Path, str]] = [(user_root, "user"), (bundled_root, "bundled")]
+            roots: list[tuple[Path, str]] = [
+                (user_root, "user"),
+                (bundled_root, "bundled"),
+            ]
         else:
             user_root = _scenario_save_dir()
             roots = [(user_root, "user")]
@@ -1304,15 +1460,26 @@ async def list_save_files(kind: str = "base") -> str:
                 if path.stem in seen:
                     continue
                 seen.add(path.stem)
-                saves.append({
-                    "name": path.stem,
-                    "path": str(path),
-                    "source": source,
-                    "bytes": path.stat().st_size,
-                    "sha256": _sha256(path),
-                    "updated_at": path.stat().st_mtime,
-                })
-        return json.dumps({"status": "ok", "kind": kind, "directory": str(user_root), "count": len(saves), "saves": saves}, indent=2)
+                saves.append(
+                    {
+                        "name": path.stem,
+                        "path": str(path),
+                        "source": source,
+                        "bytes": path.stat().st_size,
+                        "sha256": _sha256(path),
+                        "updated_at": path.stat().st_mtime,
+                    }
+                )
+        return json.dumps(
+            {
+                "status": "ok",
+                "kind": kind,
+                "directory": str(user_root),
+                "count": len(saves),
+                "saves": saves,
+            },
+            indent=2,
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1326,17 +1493,24 @@ async def inspect_save(name: str, kind: str = "base") -> str:
         kind: "base" or "scenario".
     """
     try:
-        path = _resolve_base_save_path(name) if kind == "base" else _named_save_path(_scenario_save_dir(), name)
+        path = (
+            _resolve_base_save_path(name)
+            if kind == "base"
+            else _named_save_path(_scenario_save_dir(), name)
+        )
         data = _load_save_json(path)
-        return json.dumps({
-            "status": "ok",
-            "kind": kind,
-            "name": _safe_save_name(name),
-            "path": str(path),
-            "bytes": path.stat().st_size,
-            "sha256": _sha256(path),
-            "summary": _save_summary(data),
-        }, indent=2)
+        return json.dumps(
+            {
+                "status": "ok",
+                "kind": kind,
+                "name": _safe_save_name(name),
+                "path": str(path),
+                "bytes": path.stat().st_size,
+                "sha256": _sha256(path),
+                "summary": _save_summary(data),
+            },
+            indent=2,
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1414,7 +1588,11 @@ async def materialize_scenario_save(
                 next_normal_encounter = id_validation["encounter"]["id"]
 
         players = edited.get("players")
-        if not isinstance(players, list) or not players or not isinstance(players[0], dict):
+        if (
+            not isinstance(players, list)
+            or not players
+            or not isinstance(players[0], dict)
+        ):
             raise ValueError("save does not contain players[0]")
         player = players[0]
 
@@ -1440,7 +1618,9 @@ async def materialize_scenario_save(
             current_relics = player.get("relics")
             if not isinstance(current_relics, list):
                 current_relics = []
-            current_relics = [relic for relic in current_relics if isinstance(relic, dict)]
+            current_relics = [
+                relic for relic in current_relics if isinstance(relic, dict)
+            ]
             for relic_id in remove_relics or []:
                 target = _normalize_relic_id(relic_id)
                 for i, relic in enumerate(current_relics):
@@ -1475,18 +1655,21 @@ async def materialize_scenario_save(
             normal_ids[index] = _normalize_encounter_id(next_normal_encounter)
 
         _write_save_json(output_path, edited)
-        return json.dumps({
-            "status": "ok",
-            "base": str(base_path),
-            "scenario": str(output_path),
-            "scenario_name": _safe_save_name(scenario_name),
-            "bytes": output_path.stat().st_size,
-            "sha256": _sha256(output_path),
-            "id_validation": id_validation,
-            "before": _save_summary(data),
-            "after": _save_summary(edited),
-            "next_step": "Load this scenario save in-game and verify with get_game_state before using it in an agent test.",
-        }, indent=2)
+        return json.dumps(
+            {
+                "status": "ok",
+                "base": str(base_path),
+                "scenario": str(output_path),
+                "scenario_name": _safe_save_name(scenario_name),
+                "bytes": output_path.stat().st_size,
+                "sha256": _sha256(output_path),
+                "id_validation": id_validation,
+                "before": _save_summary(data),
+                "after": _save_summary(edited),
+                "next_step": "Load this scenario save in-game and verify with get_game_state before using it in an agent test.",
+            },
+            indent=2,
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1505,7 +1688,11 @@ async def install_save_as_current(name: str, kind: str = "scenario") -> str:
         kind: "scenario" or "base".
     """
     try:
-        source = _resolve_base_save_path(name) if kind == "base" else _named_save_path(_scenario_save_dir(), name)
+        source = (
+            _resolve_base_save_path(name)
+            if kind == "base"
+            else _named_save_path(_scenario_save_dir(), name)
+        )
         if not source.exists():
             raise FileNotFoundError(source)
 
@@ -1517,27 +1704,34 @@ async def install_save_as_current(name: str, kind: str = "scenario") -> str:
             companion = current.with_name(f"{current.name}.backup")
             backup = None
             if current.exists():
-                backup = current.with_name(f"{current.stem}.backup-{int(__import__('time').time())}{current.suffix}")
+                backup = current.with_name(
+                    f"{current.stem}.backup-{int(__import__('time').time())}{current.suffix}"
+                )
                 backup.write_bytes(current.read_bytes())
             current.write_bytes(bytes_to_install)
             companion.write_bytes(bytes_to_install)
-            installed.append({
-                "current_run_save": str(current),
-                "current_run_backup": str(companion),
-                "previous_backup": str(backup) if backup else None,
-                "bytes": current.stat().st_size,
-                "sha256": _sha256(current),
-            })
+            installed.append(
+                {
+                    "current_run_save": str(current),
+                    "current_run_backup": str(companion),
+                    "previous_backup": str(backup) if backup else None,
+                    "bytes": current.stat().st_size,
+                    "sha256": _sha256(current),
+                }
+            )
 
-        return json.dumps({
-            "status": "ok",
-            "installed": str(source),
-            "targets": installed,
-            "target_count": len(installed),
-            "save_context": save_context,
-            "sha256": _sha256(source),
-            "next_step": "Launch STS2 after installing, then load the run and inspect get_game_state.",
-        }, indent=2)
+        return json.dumps(
+            {
+                "status": "ok",
+                "installed": str(source),
+                "targets": installed,
+                "target_count": len(installed),
+                "save_context": save_context,
+                "sha256": _sha256(source),
+                "next_step": "Launch STS2 after installing, then load the run and inspect get_game_state.",
+            },
+            indent=2,
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1736,19 +1930,31 @@ async def start_sts2(wait_for_bridge: bool = True, timeout_seconds: int = 90) ->
         ready_file = _bridge_ready_file()
         if ready_file is None:
             before["action"] = "cannot_wait"
-            before["diagnosis"] = "APPDATA is unset, so the bridge's ready file cannot be located; set SPIRELENS_BRIDGE_READY_FILE."
+            before["diagnosis"] = (
+                "APPDATA is unset, so the bridge's ready file cannot be located; set SPIRELENS_BRIDGE_READY_FILE."
+            )
             return _json(before)
         # The bridge writes the file once game startup completes; wait on a
         # directory change notification for it rather than re-probing.
         started = time.monotonic()
-        doc = await asyncio.to_thread(_wait_for_ready_file_blocking, ready_file, timeout)
+        doc = await asyncio.to_thread(
+            _wait_for_ready_file_blocking, ready_file, timeout
+        )
         last = await _host_status_payload()
         last["waited_seconds"] = int(time.monotonic() - started)
         last["ready_file"] = str(ready_file)
         if doc is not None and last["status"] == "ready":
-            last["action"] = "started_and_ready" if before.get("action") == "started" else "already_running_ready"
+            last["action"] = (
+                "started_and_ready"
+                if before.get("action") == "started"
+                else "already_running_ready"
+            )
         else:
-            last["action"] = "started_bridge_not_ready" if before.get("action") == "started" else "already_running_bridge_not_ready"
+            last["action"] = (
+                "started_bridge_not_ready"
+                if before.get("action") == "started"
+                else "already_running_bridge_not_ready"
+            )
         return _json(last)
     except Exception as e:
         return _handle_error(e)
@@ -1778,12 +1984,18 @@ async def stop_sts2(wait_for_exit: bool = True, timeout_seconds: int = 45) -> st
             return _json(before)
 
         timeout = max(0, min(int(timeout_seconds), 300))
-        pids = [int(p["pid"]) for p in before["game"]["processes"] if str(p.get("pid") or "").isdigit()]
+        pids = [
+            int(p["pid"])
+            for p in before["game"]["processes"]
+            if str(p.get("pid") or "").isdigit()
+        ]
         started = time.monotonic()
         # Block on the processes' handles until they exit.
         exited = await asyncio.to_thread(_wait_for_pids_exit_blocking, pids, timeout)
         last = await _host_status_payload()
-        last["action"] = "stopped" if exited and not last["game"]["running"] else "stop_timeout"
+        last["action"] = (
+            "stopped" if exited and not last["game"]["running"] else "stop_timeout"
+        )
         last["stop_result"] = before["stop_result"]
         last["waited_seconds"] = int(time.monotonic() - started)
         return _json(last)
@@ -1806,14 +2018,22 @@ async def restart_sts2(wait_for_bridge: bool = True, timeout_seconds: int = 90) 
         timeout = max(0, min(int(timeout_seconds), 300))
         deadline = time.monotonic() + timeout
 
-        stop_result = json.loads(await stop_sts2(wait_for_exit=True, timeout_seconds=timeout))
+        stop_result = json.loads(
+            await stop_sts2(wait_for_exit=True, timeout_seconds=timeout)
+        )
         if stop_result.get("action") == "stop_timeout":
             stop_result["action"] = "restart_stop_timeout"
             return _json(stop_result)
 
         remaining = max(0, int(deadline - time.monotonic()))
-        start_result = json.loads(await start_sts2(wait_for_bridge=wait_for_bridge, timeout_seconds=remaining))
-        start_result["action"] = "restarted_ready" if start_result.get("status") == "ready" else "restart_incomplete"
+        start_result = json.loads(
+            await start_sts2(wait_for_bridge=wait_for_bridge, timeout_seconds=remaining)
+        )
+        start_result["action"] = (
+            "restarted_ready"
+            if start_result.get("status") == "ready"
+            else "restart_incomplete"
+        )
         start_result["stop_result"] = stop_result
         return _json(start_result)
     except Exception as e:
@@ -1821,7 +2041,9 @@ async def restart_sts2(wait_for_bridge: bool = True, timeout_seconds: int = 90) 
 
 
 @mcp.tool()
-async def set_spirelens_view_stats_enabled(enabled: bool = True, verbose_hand_stats: bool = True) -> str:
+async def set_spirelens_view_stats_enabled(
+    enabled: bool = True, verbose_hand_stats: bool = True
+) -> str:
     """Turn SpireLens View Stats on or off through the in-game runtime bridge.
 
     Use this before capturing SpireLens card-stat tooltip evidence. It sets the
@@ -1831,11 +2053,13 @@ async def set_spirelens_view_stats_enabled(enabled: bool = True, verbose_hand_st
     evidence surface; normal player config still defaults this option off.
     """
     try:
-        return await _post({
-            "action": "dev_set_spirelens_view_stats_enabled",
-            "enabled": enabled,
-            "verbose_hand_stats": verbose_hand_stats,
-        })
+        return await _post(
+            {
+                "action": "dev_set_spirelens_view_stats_enabled",
+                "enabled": enabled,
+                "verbose_hand_stats": verbose_hand_stats,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1851,10 +2075,12 @@ async def list_visible_cards(surface: str = "hand") -> str:
     card_select/grid, and card_reward/reward.
     """
     try:
-        return await _post({
-            "action": "dev_list_visible_cards",
-            "surface": surface,
-        })
+        return await _post(
+            {
+                "action": "dev_list_visible_cards",
+                "surface": surface,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1910,10 +2136,12 @@ async def list_visible_relics(surface: str = "player_relic_bar") -> str:
     - `treasure`: active treasure room relic rewards
     """
     try:
-        return await _post({
-            "action": "dev_list_visible_relics",
-            "surface": surface,
-        })
+        return await _post(
+            {
+                "action": "dev_list_visible_relics",
+                "surface": surface,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1967,10 +2195,12 @@ async def open_card_pile(pile: str = "deck") -> str:
     - `exhaust_pile`: the current combat exhaust pile
     """
     try:
-        return await _post({
-            "action": "dev_open_card_pile",
-            "pile": pile,
-        })
+        return await _post(
+            {
+                "action": "dev_open_card_pile",
+                "pile": pile,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -1979,15 +2209,19 @@ async def open_card_pile(pile: str = "deck") -> str:
 async def close_card_pile() -> str:
     """Close the active card pile or deck view opened for MCP inspection."""
     try:
-        return await _post({
-            "action": "dev_close_card_pile",
-        })
+        return await _post(
+            {
+                "action": "dev_close_card_pile",
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
 
 @mcp.tool()
-async def start_singleplayer_run(character: str = "Ironclad", ascension: int = 0, seed: str | None = None) -> str:
+async def start_singleplayer_run(
+    character: str = "Ironclad", ascension: int = 0, seed: str | None = None
+) -> str:
     """Start a dev singleplayer run without clicking through the main menu.
 
     Args:
@@ -2090,12 +2324,14 @@ async def replace_run_deck_and_save(
         persist: If true, call the game's own SaveManager.SaveRun.
     """
     try:
-        return await _post({
-            "action": "dev_replace_run_deck_and_save",
-            "deck": deck,
-            "update_combat_piles": update_combat_piles,
-            "persist": persist,
-        })
+        return await _post(
+            {
+                "action": "dev_replace_run_deck_and_save",
+                "deck": deck,
+                "update_combat_piles": update_combat_piles,
+                "persist": persist,
+            }
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -2139,23 +2375,32 @@ async def configure_live_combat(
         return _handle_error(e)
 
 
-async def _wait_for_change(since_version: int, timeout_seconds: float, require_settled: bool = True) -> dict:
+async def _wait_for_change(
+    since_version: int, timeout_seconds: float, require_settled: bool = True
+) -> dict:
     """One bridge wait_for_change call: returns once the game state version
     passes `since_version` and (by default) the game has settled, or at the
     timeout. The bridge parks the request on its state-change signal."""
     timeout_ms = int(max(0, timeout_seconds) * 1000)
-    async with httpx.AsyncClient(timeout=timeout_seconds + 15, trust_env=_trust_env) as client:
-        r = await client.post(_sp_url(), json={
-            "action": "wait_for_change",
-            "since_version": since_version,
-            "timeout_ms": timeout_ms,
-            "require_settled": require_settled,
-        })
+    async with httpx.AsyncClient(
+        timeout=timeout_seconds + 15, trust_env=_trust_env
+    ) as client:
+        r = await client.post(
+            _sp_url(),
+            json={
+                "action": "wait_for_change",
+                "since_version": since_version,
+                "timeout_ms": timeout_ms,
+                "require_settled": require_settled,
+            },
+        )
         r.raise_for_status()
         return r.json()
 
 
-async def _wait_for_state(predicate, timeout_seconds: float, since_version: int = -1) -> dict:
+async def _wait_for_state(
+    predicate, timeout_seconds: float, since_version: int = -1
+) -> dict:
     """Waits until a settled game state satisfies `predicate`. Each iteration
     blocks in the bridge until the state actually changes; nothing sleeps."""
     deadline = time.monotonic() + timeout_seconds
@@ -2172,11 +2417,15 @@ async def _wait_for_state(predicate, timeout_seconds: float, since_version: int 
         if reply.get("status") == "timeout":
             break
         since = int(last_state.get("state_version", since))
-    raise TimeoutError(f"Timed out waiting for requested game state. Last state: {last_state}")
+    raise TimeoutError(
+        f"Timed out waiting for requested game state. Last state: {last_state}"
+    )
 
 
 @mcp.tool()
-async def wait_for_game_state_change(since_version: int = -1, timeout_seconds: int = 30, format: str = "json") -> str:
+async def wait_for_game_state_change(
+    since_version: int = -1, timeout_seconds: int = 30, format: str = "json"
+) -> str:
     """Wait for the game to change and settle, then return the new state.
 
     Use this after an action instead of calling get_game_state repeatedly.
@@ -2776,7 +3025,9 @@ async def mp_rewards_pick_card(card_index: int) -> str:
         card_index: 0-based index of the card to add to the deck.
     """
     try:
-        return await _mp_post({"action": "select_card_reward", "card_index": card_index})
+        return await _mp_post(
+            {"action": "select_card_reward", "card_index": card_index}
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -2872,7 +3123,9 @@ async def mp_combat_select_card(card_index: int) -> str:
         card_index: 0-based index of the card in the selectable hand cards.
     """
     try:
-        return await _mp_post({"action": "combat_select_card", "card_index": card_index})
+        return await _mp_post(
+            {"action": "combat_select_card", "card_index": card_index}
+        )
     except Exception as e:
         return _handle_error(e)
 
@@ -3131,9 +3384,23 @@ def _run_http(
 
 def main():
     parser = argparse.ArgumentParser(description="spirelens-mcp server")
-    parser.add_argument("--port", type=int, default=15526, help="Game HTTP bridge port (the in-game listener)")
-    parser.add_argument("--host", type=str, default="localhost", help="Game HTTP bridge host (the in-game listener)")
-    parser.add_argument("--no-trust-env", action="store_true", help="Ignore HTTP_PROXY/HTTPS_PROXY environment variables")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=15526,
+        help="Game HTTP bridge port (the in-game listener)",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="localhost",
+        help="Game HTTP bridge host (the in-game listener)",
+    )
+    parser.add_argument(
+        "--no-trust-env",
+        action="store_true",
+        help="Ignore HTTP_PROXY/HTTPS_PROXY environment variables",
+    )
     parser.add_argument(
         "--transport",
         choices=["stdio", "http"],
@@ -3179,7 +3446,9 @@ def main():
     )
     parser.add_argument(
         "--auth-issuer",
-        default=os.environ.get("SPIRELENS_MCP_AUTH_ISSUER", "https://auth.romaine.life"),
+        default=os.environ.get(
+            "SPIRELENS_MCP_AUTH_ISSUER", "https://auth.romaine.life"
+        ),
         help="[--auth-mode jwt] required 'iss' claim.",
     )
     parser.add_argument(
@@ -3207,7 +3476,9 @@ def main():
     if auth_mode is None:
         auth_mode = "token" if args.auth_token else "none"
     if auth_mode == "token" and not args.auth_token:
-        parser.error("--auth-mode token requires --auth-token (or $SPIRELENS_MCP_TOKEN)")
+        parser.error(
+            "--auth-mode token requires --auth-token (or $SPIRELENS_MCP_TOKEN)"
+        )
 
     allowed_actor_emails = None
     if args.auth_allowed_actor_emails:

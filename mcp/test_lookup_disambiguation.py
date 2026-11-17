@@ -22,10 +22,18 @@ import server
 def _happy_flower_matches():
     # Mirrors the real ambiguous payload recorded in spirelens#148 run 4.1.
     return [
-        {"id": "HAPPY_FLOWER", "name": "Happy Flower", "rarity": "Common",
-         "description": "Every 3 turns, gain energy."},
-        {"id": "FAKE_HAPPY_FLOWER", "name": "Happy Flower???", "rarity": "Event",
-         "description": "Every 5 turns, gain energy."},
+        {
+            "id": "HAPPY_FLOWER",
+            "name": "Happy Flower",
+            "rarity": "Common",
+            "description": "Every 3 turns, gain energy.",
+        },
+        {
+            "id": "FAKE_HAPPY_FLOWER",
+            "name": "Happy Flower???",
+            "rarity": "Event",
+            "description": "Every 5 turns, gain energy.",
+        },
     ]
 
 
@@ -60,7 +68,9 @@ def test_exact_name_query_excludes_punctuation_variant():
 
 def test_prefixed_id_query_collapses():
     data = _ambiguous(_happy_flower_matches(), "RELIC.HAPPY_FLOWER")
-    out = server._collapse_exact_catalog_match(data, "relic", "RELIC.HAPPY_FLOWER", "RELIC")
+    out = server._collapse_exact_catalog_match(
+        data, "relic", "RELIC.HAPPY_FLOWER", "RELIC"
+    )
     assert out["status"] == "ok"
     assert out["relic"]["id"] == "HAPPY_FLOWER"
 
@@ -74,14 +84,18 @@ def test_lowercase_id_query_collapses():
 
 def test_exact_query_for_the_fake_resolves_to_fake_only():
     data = _ambiguous(_happy_flower_matches(), "FAKE_HAPPY_FLOWER")
-    out = server._collapse_exact_catalog_match(data, "relic", "FAKE_HAPPY_FLOWER", "RELIC")
+    out = server._collapse_exact_catalog_match(
+        data, "relic", "FAKE_HAPPY_FLOWER", "RELIC"
+    )
     assert out["status"] == "ok"
     assert out["relic"]["id"] == "FAKE_HAPPY_FLOWER"
 
 
 def test_exact_name_with_question_marks_resolves_to_fake():
     data = _ambiguous(_happy_flower_matches(), "Happy Flower???")
-    out = server._collapse_exact_catalog_match(data, "relic", "Happy Flower???", "RELIC")
+    out = server._collapse_exact_catalog_match(
+        data, "relic", "Happy Flower???", "RELIC"
+    )
     assert out["status"] == "ok"
     assert out["relic"]["id"] == "FAKE_HAPPY_FLOWER"
 
@@ -102,7 +116,12 @@ def test_two_exact_id_hits_stay_ambiguous():
 
 
 def test_ok_result_passes_through_unchanged_identity():
-    data = {"status": "ok", "kind": "relic", "relic": {"id": "X"}, "matches": [{"id": "X"}]}
+    data = {
+        "status": "ok",
+        "kind": "relic",
+        "relic": {"id": "X"},
+        "matches": [{"id": "X"}],
+    }
     assert server._collapse_exact_catalog_match(data, "relic", "X", "RELIC") is data
 
 
@@ -145,7 +164,9 @@ def test_passthrough_returns_valid_json_when_collapsed(monkeypatch):
     raw = asyncio.run(
         server._catalog_lookup_passthrough(
             {"action": "lookup_relic", "query": "HAPPY_FLOWER", "max_matches": 10},
-            "relic", "HAPPY_FLOWER", "RELIC",
+            "relic",
+            "HAPPY_FLOWER",
+            "RELIC",
         )
     )
     parsed = json.loads(raw)
